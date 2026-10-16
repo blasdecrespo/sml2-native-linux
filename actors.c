@@ -9,8 +9,8 @@ static const uint8_t *rom_at(const Actors *a, unsigned bank, unsigned address,
     if (address < 0x4000 || address > 0x8000 || size > 0x8000 - address)
         return NULL;
     offset = bank * 0x4000u + address - 0x4000;
-    if (offset > a->rom_size || size > a->rom_size - offset) return NULL;
-    return a->rom + offset;
+    if (offset > a->asset_size || size > a->asset_size - offset) return NULL;
+    return a->assets + offset;
 }
 
 static unsigned little_word(const uint8_t *p)
@@ -71,14 +71,14 @@ void actors_encode_definitions(const Actors *a, uint8_t b[512])
     for(unsigned j=0;j<a->definition_terminator_bytes;++j)b[6+i*6+j]=0xff;
 }
 
-bool actors_load(Actors *a, const uint8_t *rom, size_t rom_size,
+bool actors_load(Actors *a, const uint8_t *assets, size_t asset_size,
                  unsigned level_id, bool easy_mode)
 {
     const uint8_t *p;
     unsigned source;
-    if (!a || !rom || rom_size != 0x80000 || level_id >= 32) return false;
+    if (!a || !assets || asset_size != 0x80000 || level_id >= 32) return false;
     memset(a, 0, sizeof *a);
-    a->rom = rom; a->rom_size = rom_size; a->level_id = level_id;
+    a->assets = assets; a->asset_size = asset_size; a->level_id = level_id;
     a->easy_mode = easy_mode;
     /* 03:6C4B switches object graphics/AI families for level IDs >= 0A. */
     a->alternate_tileset = level_id >= 10;
@@ -101,7 +101,7 @@ bool actors_load(Actors *a, const uint8_t *rom, size_t rom_size,
         type = (p[0] >> 2) & 0x3c;
         if (type & 4) type = (type | 0x40) & ~4u;
         d->type = (uint8_t)(type + (p[1] >> 5));
-        d->rom_offset = 3 * 0x4000u + source - 0x4000;
+        d->asset_offset = 3 * 0x4000u + source - 0x4000;
         source += 3;
     }
     a->stored_definition_count=(uint8_t)a->definition_count;

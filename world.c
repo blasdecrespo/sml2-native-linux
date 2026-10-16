@@ -6,7 +6,7 @@
 #include <string.h>
 
 static const uint8_t *asset(const World *w,unsigned bank,unsigned address) {
-    return w->rom+bank*0x4000u+(address&0x3fff);
+    return w->assets+bank*0x4000u+(address&0x3fff);
 }
 static void save_now(World *w) {
     /* 00:2934 captures the record at the call, before later cursor remaps. */
@@ -268,7 +268,7 @@ static void cursor_sprites(World *w) {
     int x=w->x,y=w->y;
     if((w->segment&15)&&(w->segment&0x20)){x+=4;y+=8;}
     for(unsigned i=0;i<4;i++) {
-        const uint8_t *p=at+i*2<0x4000?w->rom+at+i*2:asset(w,15,at+i*2);
+        const uint8_t *p=at+i*2<0x4000?w->assets+at+i*2:asset(w,15,at+i*2);
         append_sprite(w,(unsigned)(x+(i&1)*8),(unsigned)(y+(i>>1)*8),p[0],p[1]);
     }
 }
@@ -582,17 +582,17 @@ static void animate_region_tiles(World *w) {
         }
     }
 }
-bool world_init_with_clock(World *w,const uint8_t *rom,size_t size,const uint8_t record[0x50],WorldClockRead divider,WorldClockRead timer,void *context) {
-    if(!w||!rom||size!=524288||!record||record[0]>=WORLD_NODE_COUNT)return false;
-    memset(w,0,sizeof(*w));w->rom=rom;w->rom_size=size;
+bool world_init_with_clock(World *w,const uint8_t *assets,size_t size,const uint8_t record[0x50],WorldClockRead divider,WorldClockRead timer,void *context) {
+    if(!w||!assets||size!=524288||!record||record[0]>=WORLD_NODE_COUNT)return false;
+    memset(w,0,sizeof(*w));w->assets=assets;w->asset_size=size;
     w->read_divider=divider;w->read_timer=timer;w->divider_context=context;
     memcpy(w->record,record,0x50);memcpy(w->progress,record+8,WORLD_PROGRESS_COUNT);
     w->node=record[0];w->movement_cadence=record[0x38];w->lives=(record[0x43]>>4)*10+(record[0x43]&15);
     w->coins=(record[0x40]>>4)*10+(record[0x40]&15)+(record[0x41]&15)*100;
     return world_return(w,WORLD_EXISTING);
 }
-bool world_init(World *w,const uint8_t *rom,size_t size,const uint8_t record[0x50]) {
-    return world_init_with_clock(w,rom,size,record,NULL,NULL,NULL);
+bool world_init(World *w,const uint8_t *assets,size_t size,const uint8_t record[0x50]) {
+    return world_init_with_clock(w,assets,size,record,NULL,NULL,NULL);
 }
 void world_inherit_metatiles(World *w,const uint8_t m[512]) {
     /* Preserve typed fields whose storage the original level loader reused.
@@ -759,7 +759,7 @@ static void castle_assets(World *w) {
     w->background_palette=0xe4;w->sprite_palette[0]=0xd0;w->sprite_palette[1]=0x38;
 }
 bool world_castle_prepare(World *w) {
-    if(!w||!w->rom||w->stage!=0xff)return false;
+    if(!w||!w->assets||w->stage!=0xff)return false;
     w->scene=WORLD_CASTLE_GATE;w->scene_action=0;w->scene_timer=64;
     w->scene_y=0xa8;w->scene_sprite=0xbb;castle_assets(w);
     w->music_request=0xff;w->stage_requested=false;
@@ -795,14 +795,14 @@ static void castle_tick(World *w,uint8_t pressed) {
     castle_sprites(w);
 }
 bool world_boss_prepare(World *w,uint8_t stage) {
-    if(!w||!w->rom||stage>=24||!*asset(w,12,0x44f1+stage))return false;
+    if(!w||!w->assets||stage>=24||!*asset(w,12,0x44f1+stage))return false;
     castle_assets(w);w->award.stage=stage;w->award.x=0x58;
     w->scene=WORLD_COIN_AWARD;w->scene_action=0;w->scene_timer=64;
     w->stage_requested=false;w->return_requested=false;w->save_requested=false;w->moving=false;w->peeking=false;
     w->sprite_count=0;memset(w->sprites,0,sizeof(w->sprites));return true;
 }
 bool world_boss_clear(World *w,uint8_t stage) {
-    if(!w||!w->rom||stage>=24)return false;
+    if(!w||!w->assets||stage>=24)return false;
     unsigned slot=*asset(w,12,0x44f1+stage);if(!slot)return false;
     /* 0C:441D counts a newly completed boss before its coin flies in. */
     if(!(w->progress[slot]&0x80)) {
@@ -860,7 +860,7 @@ static void coin_award_tick(World *w) {
     collected_coin_sprites(w);a->coins=(uint8_t)world_golden_coins(w);
 }
 bool world_ending(World *w) {
-    if(!w||!w->rom)return false;
+    if(!w||!w->assets)return false;
     memset(&w->ending,0,sizeof(w->ending));w->scene=WORLD_ENDING;w->scene_action=0;
     w->stage_requested=false;w->save_requested=false;w->moving=false;w->peeking=false;
     return true;
@@ -996,7 +996,7 @@ static void game_over_sprites(World *w) {
     player_sprite(w,0xe3+((w->global_frame&0x10)>>4),0x44,y,true);
 }
 bool world_game_over(World *w) {
-    if(!w||!w->rom)return false;
+    if(!w||!w->assets)return false;
     static const uint8_t owners[]={5,9,0x1d,0x17,0x11,0x0e};
     w->lost_coin_mask=0;unsigned lost=0;
     for(unsigned i=0;i<6;i++) {

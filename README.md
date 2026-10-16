@@ -5,36 +5,38 @@ Gameplay, menus, world navigation, bosses, saves, rendering and sound run as
 native code. The executable does not execute Game Boy instructions or include
 a CPU emulator.
 
-This repository contains the source and build files. It does not include the
-ROM, generated assets, binaries, saves, tests or reverse-engineering tools.
+This repository contains the native source, standalone game assets and build
+files. **No ROM is required to build or play.** Tests, saves, reference tooling
+and generated build files are excluded.
+
+## Linux download
+
+Download the Linux x86-64 archive from [Releases](https://github.com/blasdecrespo/sml2-native-linux/releases),
+extract it, and run `./sml2-native`. The executable includes the game assets.
+It requires glibc 2.34 or newer, the X11 and ALSA shared libraries, and an X11
+or XWayland display. Use `./sml2-native --mute` to disable audio.
 
 ## Build and run
 
 Requirements: a C11 compiler, Make, Python 3, and the X11 and ALSA development
 libraries. The window uses X11 or XWayland.
 
-Supply your own copy of **Super Mario Land 2 - 6 Golden Coins (USA, Europe)**.
-The supported ROM is 524,288 bytes with SHA-256:
-
-```text
-5450dce1bd0c073964c374b5b5b5729dce8d00f2e807892c34af32b8bce1392e
-```
-
-Place it at `baserom.gb`, or give Make its path:
-
 ```sh
-make ROM=/path/to/original.gb
+make
 ./build/sml2-native
 ```
 
-The build verifies the ROM and embeds its assets and tables locally. The
-resulting executable needs no separate ROM file at runtime. Generated files
-stay in `build/`, which is ignored by Git.
+The build verifies and embeds `assets/game-data.bin`, which contains the
+graphics, maps, music and tables used by the C game. `assets/index.json` maps
+those data segments to the internal coordinates used by the translated
+readers. Unused data space is zero; the original ROM is not reconstructed.
+The resulting executable needs no separate asset files at runtime. Generated
+files stay in `build/`, which is ignored by Git.
 
 If your environment overrides the compiler or linker flags, use:
 
 ```sh
-make CC=cc LDFLAGS= ROM=/path/to/original.gb
+make CC=cc LDFLAGS=
 ```
 
 ## Controls
@@ -69,8 +71,8 @@ atomic, and the first existing save is retained as a `.bak` file.
 
 ## Validation and differences
 
-The development version passed 73 local checks against the original ROM and
-native executable. One uninterrupted new-file run earned all six golden coins,
+The standalone asset build passed 73 local checks against the original ROM
+and native executable. A fresh source checkout also built without a ROM. One uninterrupted new-file run earned all six golden coins,
 defeated all three Wario forms and finished the ending, comparing 119,709 native
 calls with the original game using recorded clock inputs. Those tests and
 reference captures are not included here.

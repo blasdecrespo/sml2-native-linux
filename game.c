@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern const uint8_t game_rom[524288];
+#include "assets.h"
 
 enum GamePhase { GAME_MENU, GAME_STAGE, GAME_WORLD };
 /* Zero means no pending handler; source scene0 therefore needs a sentinel. */
@@ -129,7 +129,7 @@ static void copy_world_save(Game *game) {
 static bool load_file_world(Game *game) {
     const uint8_t *record=game->screens.file_records[game->screens.selected_file];
     uint8_t frame=game->world.global_frame;
-    if(!world_init_with_clock(&game->world,game_rom,sizeof(game_rom),record,
+    if(!world_init_with_clock(&game->world,game_assets,sizeof(game_assets),record,
                              game->stage.divider_reader,game->timer_reader,
                              game->stage.divider_context)) return false;
     game->world.global_frame=frame;
@@ -167,13 +167,13 @@ static bool initialize_title(Game *game,bool cold) {
     /* 00:029F/38CE stop voices before jumping to01E5. The bootstrap clears
      * volatile game/driver state; SRAM records and A0F0's demo index survive. */
     if(cold) {
-        if(!audio_driver_init(&game->audio,game_rom,sizeof(game_rom),NULL,NULL))return false;
+        if(!audio_driver_init(&game->audio,game_assets,sizeof(game_assets),NULL,NULL))return false;
     } else {
         audio_driver_stop_music(&game->audio);
         audio_driver_reset(&game->audio);
     }
-    if(!screens_init(&game->screens,game_rom,sizeof(game_rom))||
-       !stage_init(&game->stage,game_rom,sizeof(game_rom),false))return false;
+    if(!screens_init(&game->screens,game_assets,sizeof(game_assets))||
+       !stage_init(&game->stage,game_assets,sizeof(game_assets),false))return false;
     if(!cold&&!screens_import_save(&game->screens,game->save_image,sizeof(game->save_image)))return false;
     game->stage.divider_reader=divider;game->stage.divider_context=timer_context;
     memset(&game->world,0,sizeof(game->world));
@@ -194,7 +194,7 @@ static bool initialize_title(Game *game,bool cold) {
 static bool restart_title(Game *game) {return initialize_title(game,false);}
 
 static bool begin_demo(Game *game) {
-    if(!demo_init(&game->demo,game_rom,sizeof(game_rom),game->next_demo)||
+    if(!demo_init(&game->demo,game_assets,sizeof(game_assets),game->next_demo)||
        !stage_load(&game->stage,game->demo.level,false,false)) return false;
     game->stage.level.coins=game->stage.level.lives=0;
     game->stage.level.power=LEVEL_SMALL;
@@ -230,7 +230,7 @@ static void step_entry(Game *game,uint8_t held) {
     ++game->scene_animation_clock;
     switch(game->entry_scene) {
         case GAME_TITLE_LOADING:
-            if(!screens_init(&game->screens,game_rom,sizeof(game_rom))||
+            if(!screens_init(&game->screens,game_assets,sizeof(game_assets))||
                !screens_import_save(&game->screens,game->save_image,sizeof(game->save_image)))
                 game->stage.error=true;
             game->screens.frame_counter=game->world.global_frame;
@@ -283,7 +283,7 @@ static void step_entry(Game *game,uint8_t held) {
             /* 00:357F/358B presents the easy-mode label before every stage.
              * LCDC E2 disables the background; the label is one metasprite. */
             if(game->screens.easy_mode) {
-                memcpy(game->world.tiles+0x800,game_rom+0x1a*0x4000+0x656,0x300);
+                memcpy(game->world.tiles+0x800,game_assets+0x1a*0x4000+0x656,0x300);
                 sprites_clear(&game->entry_sprites);
                 game->entry_timer=64;game->easy_card_visible=true;game->entry_scene=0x17;
             } else game->entry_scene=0x0b;
@@ -294,7 +294,7 @@ static void step_entry(Game *game,uint8_t held) {
             break;
         case 0x17:
             sprites_clear(&game->entry_sprites);
-            if(!sprites_mario(&game->entry_sprites,game_rom,sizeof(game_rom),0xf0,0x50,0x34,false,false))
+            if(!sprites_mario(&game->entry_sprites,game_assets,sizeof(game_assets),0xf0,0x50,0x34,false,false))
                 game->stage.error=true;
             if(!--game->entry_timer)game->entry_scene=0x0b;
             break;

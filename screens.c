@@ -5,7 +5,7 @@
 static const uint8_t *asset(const ScreenState *s, unsigned bank,
                             unsigned address)
 {
-    return s->rom + bank * 0x4000u + address - 0x4000u;
+    return s->assets + bank * 0x4000u + address - 0x4000u;
 }
 
 static void tiles(ScreenState *s, unsigned bank, unsigned source,
@@ -54,13 +54,13 @@ void screens_export_records(const ScreenState *s, uint8_t records[0xf0])
     memcpy(records, s->file_records, 0xf0);
 }
 
-int screens_init(ScreenState *s, const uint8_t *rom, size_t rom_size)
+int screens_init(ScreenState *s, const uint8_t *assets, size_t asset_size)
 {
     unsigned i;
-    if (!s || !rom || rom_size != 0x80000) return 0;
+    if (!s || !assets || asset_size != 0x80000) return 0;
     memset(s, 0, sizeof *s);
-    s->rom = rom;
-    s->rom_size = rom_size;
+    s->assets = assets;
+    s->asset_size = asset_size;
     s->phase = SCREEN_TITLE;
     s->music_request = 0xff; /* 05:407D title loader stops the prior song. */
     /* 00:2CC4 -> 05:4043 -> 00:2ABE: title tiles and 32x32 map. */

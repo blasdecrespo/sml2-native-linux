@@ -63,8 +63,8 @@ typedef struct {
 typedef uint8_t (*WorldClockRead)(void *context);
 
 typedef struct World {
-    const uint8_t *rom;
-    size_t rom_size;
+    const uint8_t *assets;
+    size_t asset_size;
     /* Host oscillator's DIV byte. NULL supplies deterministic test entropy;
      * gameplay installs its monotonic 4194304 Hz oscillator after init. */
     uint8_t (*read_divider)(void *context);
@@ -102,8 +102,8 @@ typedef struct World {
     uint64_t frames;
 } World;
 
-bool world_init(World *world,const uint8_t *rom,size_t size,const uint8_t record[0x50]);
-bool world_init_with_clock(World *world,const uint8_t *rom,size_t size,const uint8_t record[0x50],WorldClockRead divider,WorldClockRead timer,void *context);
+bool world_init(World *world,const uint8_t *assets,size_t size,const uint8_t record[0x50]);
+bool world_init_with_clock(World *world,const uint8_t *assets,size_t size,const uint8_t record[0x50],WorldClockRead divider,WorldClockRead timer,void *context);
 /* 00:03FF and boss00:266D reuse A600..A7FF for the stage metatile table. */
 void world_inherit_metatiles(World *world,const uint8_t metatiles[512]);
 bool world_return(World *world,enum WorldReturn result);

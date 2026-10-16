@@ -33,7 +33,7 @@ typedef struct AudioDriverWork {
 } AudioDriverWork;
 typedef void (*AudioRegisterWrite)(void *context,uint8_t reg,uint8_t value);
 typedef struct AudioDriver {
-    const uint8_t *rom;size_t rom_size;
+    const uint8_t *assets;size_t asset_size;
     AudioRegisterWrite emit;void *emit_context;
     uint8_t registers[0x30];
     AudioMusicChannel channel[4];
@@ -48,7 +48,7 @@ typedef struct AudioDriver {
     bool error;
 } AudioDriver;
 
-bool audio_driver_init(AudioDriver *driver,const uint8_t *rom,size_t size,AudioRegisterWrite emit,void *context);
+bool audio_driver_init(AudioDriver *driver,const uint8_t *assets,size_t size,AudioRegisterWrite emit,void *context);
 /* Queue bytes mirror original source events and are consumed on every tick.
  * Repeating a music ID is a new request and restarts it, as in 04:4078. */
 void audio_driver_step(AudioDriver *driver);

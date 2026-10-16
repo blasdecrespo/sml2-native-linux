@@ -27,7 +27,7 @@ static void append_actors(Stage *stage) {
     for (unsigned i = 0; i < ACTOR_SLOT_COUNT; ++i) {
         ActorVisual v;
         if (!actors_visual(&stage->actors, i, &v) || v.hidden) continue;
-        if (!sprites_actor(&stage->sprites, stage->level.rom, stage->level.rom_size,
+        if (!sprites_actor(&stage->sprites, stage->level.assets, stage->level.asset_size,
                            v.frame, v.alternate_tileset, v.y, v.x, v.flags_xor))
             stage->error = true;
     }
@@ -76,7 +76,7 @@ static void step_bosses(Stage *stage,uint8_t player_x,uint8_t player_y) {
     for(unsigned i=0;i<ACTOR_SLOT_COUNT;++i) {
         BossVisual visual;
         if(!bosses_visual(&stage->bosses,i,&visual)||visual.hidden) continue;
-        if(!sprites_boss(&stage->sprites,level->rom,level->rom_size,
+        if(!sprites_boss(&stage->sprites,level->assets,level->asset_size,
                           visual.frame,visual.y,visual.x,visual.flags_xor)) stage->error=true;
     }
 }
@@ -86,7 +86,7 @@ static bool start_actors(Stage *stage, bool easy_mode) {
     /* 03:6BBB preserves FFF0. Its current owner is the active controller;
      * a boss victory leaves the ordinary controller's old value behind. */
     uint8_t slow_tick=stage->bosses_ready?stage->bosses.tick:stage->actors.slow_tick;
-    if (!actors_load(&stage->actors, stage->level.rom, stage->level.rom_size, stage->level.id, easy_mode)) return false;
+    if (!actors_load(&stage->actors, stage->level.assets, stage->level.asset_size, stage->level.id, easy_mode)) return false;
     stage->actors.defeated_count=defeated_count;
     stage->actors.slow_tick=slow_tick;
     stage->fireballs = (Fireballs){0};
@@ -111,9 +111,9 @@ bool stage_load(Stage *stage, unsigned id, bool easy_mode, bool checkpoint) {
     return level_load_checkpoint(&stage->level, id, checkpoint) && start_actors(stage, easy_mode);
 }
 
-bool stage_init(Stage *stage, const uint8_t *rom, size_t size, bool easy_mode) {
+bool stage_init(Stage *stage, const uint8_t *assets, size_t size, bool easy_mode) {
     memset(stage, 0, sizeof(*stage));
-    return level_init(&stage->level, rom, size) && start_actors(stage, easy_mode);
+    return level_init(&stage->level, assets, size) && start_actors(stage, easy_mode);
 }
 
 void stage_step(Stage *stage, uint8_t held, uint8_t pressed) {
@@ -131,7 +131,7 @@ void stage_step(Stage *stage, uint8_t held, uint8_t pressed) {
     if (was_paused) return;
     if (level->exit != LEVEL_EXIT_NONE && !level->exit_started_this_frame) return;
     if(level->boss_started_this_frame) {
-        stage->bosses_ready=bosses_load(&stage->bosses,level->rom,level->rom_size,
+        stage->bosses_ready=bosses_load(&stage->bosses,level->assets,level->asset_size,
                                         level->id,level->wario_phase,stage->actors.slow_tick);
         if(!stage->bosses_ready) {stage->error=true;return;}
         stage->boss_music=level->id==0x18?0x21+level->wario_phase:0x20;

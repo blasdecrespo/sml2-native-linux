@@ -1,11 +1,11 @@
 #include "demo.h"
 #include <string.h>
 
-bool demo_init(Demo *d,const uint8_t *rom,size_t size,unsigned index) {
-    if(!d||!rom||size!=524288||index>=4) return false;
+bool demo_init(Demo *d,const uint8_t *assets,size_t size,unsigned index) {
+    if(!d||!assets||size!=524288||index>=4) return false;
     memset(d,0,sizeof(*d));d->index=(uint8_t)index;
-    d->level=rom[5*0x4000+0x121+index];
-    memcpy(d->records,rom+5*0x4000+0x3f00-index*256,256);
+    d->level=assets[5*0x4000+0x121+index];
+    memcpy(d->records,assets+5*0x4000+0x3f00-index*256,256);
     return true;
 }
 

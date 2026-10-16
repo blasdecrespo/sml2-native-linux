@@ -23,7 +23,7 @@ typedef struct Stage {
     void *divider_context;
 } Stage;
 
-bool stage_init(Stage *stage, const uint8_t *rom, size_t size, bool easy_mode);
+bool stage_init(Stage *stage, const uint8_t *assets, size_t size, bool easy_mode);
 bool stage_load(Stage *stage, unsigned id, bool easy_mode, bool checkpoint);
 void stage_step(Stage *stage, uint8_t held, uint8_t pressed);
 void stage_render(const Stage *stage, uint8_t framebuffer[160 * 144]);

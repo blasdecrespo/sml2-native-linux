@@ -33,8 +33,8 @@ typedef enum LevelExit { LEVEL_EXIT_NONE, LEVEL_EXIT_NORMAL, LEVEL_EXIT_SECRET }
 
 /* Coordinates retain the ROM's player/camera origins; see level.c. */
 typedef struct Level {
-    const uint8_t *rom;
-    size_t rom_size;
+    const uint8_t *assets;
+    size_t asset_size;
     uint8_t map[48][256];
     uint8_t metatiles[128][4];
     uint8_t tiles[0x1800];
@@ -96,7 +96,7 @@ typedef struct Level {
     void *fireballs_context;
 } Level;
 
-bool level_init(Level *level, const uint8_t *rom, size_t rom_size);
+bool level_init(Level *level, const uint8_t *assets, size_t asset_size);
 bool level_load(Level *level, unsigned id);
 /* 01:5579 overlays only the eight initial player/camera coordinate bytes. */
 bool level_load_checkpoint(Level *level, unsigned id, bool checkpoint);

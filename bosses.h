@@ -6,8 +6,8 @@
 /* Bosses share the source's32-byte record layout with ordinary actors, but
  * type zero marks an empty record and movement uses screen_x/screen_y. */
 typedef struct Bosses {
-    const uint8_t *rom;
-    size_t rom_size;
+    const uint8_t *assets;
+    size_t asset_size;
     Actor slots[ACTOR_SLOT_COUNT];
     uint8_t tick, configuration, last_slot;
     uint8_t defeat_phase, saved_frame, saved_state, saved_capability;
@@ -43,7 +43,7 @@ typedef struct BossEvent {
 typedef struct BossEvents { BossEvent items[64]; unsigned count; bool overflow; } BossEvents;
 typedef struct BossVisual { uint8_t frame, x, y, flags_xor; bool hidden; } BossVisual;
 
-bool bosses_load(Bosses *bosses, const uint8_t *rom, size_t rom_size,
+bool bosses_load(Bosses *bosses, const uint8_t *assets, size_t asset_size,
                  unsigned level_id, uint8_t wario_phase, uint8_t tick);
 void bosses_step(Bosses *bosses, const BossWorld *world, BossEvents *events);
 bool bosses_visual(const Bosses *bosses, unsigned slot, BossVisual *visual);

@@ -10,6 +10,6 @@ typedef struct Demo {
     uint8_t records[256],cursor,held,index,level;
     bool finished,error;
 } Demo;
-bool demo_init(Demo *demo,const uint8_t *rom,size_t size,unsigned index);
+bool demo_init(Demo *demo,const uint8_t *assets,size_t size,unsigned index);
 bool demo_step(Demo *demo,uint8_t *held,uint8_t *pressed);
 #endif

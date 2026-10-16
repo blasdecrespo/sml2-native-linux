@@ -22,8 +22,8 @@ enum ScreenPhase {
 /* These are named game fields and decoded graphics, not a CPU or bus model.
  * Original state/graphics addresses are documented at their producing code. */
 typedef struct ScreenState {
-    const uint8_t *rom;
-    size_t rom_size;
+    const uint8_t *assets;
+    size_t asset_size;
     enum ScreenPhase phase;
     uint64_t frames;
     uint32_t phase_frames;
@@ -40,7 +40,7 @@ typedef struct ScreenState {
     uint8_t background_palette, sprite_palette[2];
 } ScreenState;
 
-int screens_init(ScreenState *s, const uint8_t *rom, size_t rom_size);
+int screens_init(ScreenState *s, const uint8_t *assets, size_t asset_size);
 void screens_tick(ScreenState *s, uint8_t held_buttons);
 void screens_render(const ScreenState *s, uint8_t shades[SCREEN_PIXELS]);
 const char *screens_phase_name(const ScreenState *s);

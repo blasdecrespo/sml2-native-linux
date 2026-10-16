@@ -6,8 +6,8 @@
 
 uint8_t audio_driver_byte(AudioDriver *d,unsigned address) {
     size_t offset=address<0x4000?address:4u*0x4000u+(address&0x3fff);
-    if(address>=0x8000||offset>=d->rom_size){d->error=true;return 0;}
-    return d->rom[offset];
+    if(address>=0x8000||offset>=d->asset_size){d->error=true;return 0;}
+    return d->assets[offset];
 }
 uint16_t audio_driver_word(AudioDriver *d,unsigned address) {
     uint8_t lo=audio_driver_byte(d,address),hi=audio_driver_byte(d,address+1);
@@ -35,16 +35,16 @@ static void clear_voices(AudioDriver *d) {
 void audio_driver_stop_music(AudioDriver *d) {
     audio_driver_write(d,0x25,0xff);d->stereo_mode=3;d->music=0;clear_voices(d);
 }
-bool audio_driver_init(AudioDriver *d,const uint8_t *rom,size_t size,AudioRegisterWrite emit,void *context) {
-    if(!d||!rom||size<5*0x4000u)return false;
-    memset(d,0,sizeof(*d));d->rom=rom;d->rom_size=size;d->emit=emit;d->emit_context=context;
+bool audio_driver_init(AudioDriver *d,const uint8_t *assets,size_t size,AudioRegisterWrite emit,void *context) {
+    if(!d||!assets||size<5*0x4000u)return false;
+    memset(d,0,sizeof(*d));d->assets=assets;d->asset_size=size;d->emit=emit;d->emit_context=context;
     audio_driver_reset(d);return true;
 }
 void audio_driver_reset(AudioDriver *d) {
-    const uint8_t *rom=d->rom;size_t size=d->rom_size;
+    const uint8_t *assets=d->assets;size_t size=d->asset_size;
     AudioRegisterWrite emit=d->emit;void *context=d->emit_context;
     uint8_t registers[48];memcpy(registers,d->registers,sizeof(registers));
-    memset(d,0,sizeof(*d));d->rom=rom;d->rom_size=size;d->emit=emit;d->emit_context=context;
+    memset(d,0,sizeof(*d));d->assets=assets;d->asset_size=size;d->emit=emit;d->emit_context=context;
     memcpy(d->registers,registers,sizeof(registers));
     audio_driver_write(d,0x26,0x80);audio_driver_write(d,0x24,0x77);audio_driver_write(d,0x25,0xff);
 }

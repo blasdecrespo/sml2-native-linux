@@ -4,7 +4,7 @@
 
 static uint8_t byte(const Bosses *b, unsigned address)
 {
-    return address >= 0x4000 && address < 0x8000 ? b->rom[0x4000 + address] : 0;
+    return address >= 0x4000 && address < 0x8000 ? b->assets[0x4000 + address] : 0;
 }
 
 static unsigned word(const Bosses *b, unsigned address)
@@ -32,18 +32,18 @@ static void bounds(const Bosses *b, Actor *s)
     for (unsigned i = 0; i < 4; ++i) s->bounds[i] = byte(b, address + i);
 }
 
-bool bosses_load(Bosses *b, const uint8_t *rom, size_t size,
+bool bosses_load(Bosses *b, const uint8_t *assets, size_t size,
                  unsigned level_id, uint8_t phase, uint8_t tick)
 {
     /* 02:4D9C clears AD00..AFFF, then copies18 bytes per starting record. */
     static const unsigned levels[6] = {5, 9, 13, 16, 19, 23};
     unsigned configuration;
-    if (!b || !rom || size != 0x80000) return false;
+    if (!b || !assets || size != 0x80000) return false;
     for (configuration = 0; configuration < 6 && levels[configuration] != level_id; ++configuration) {}
     configuration += phase;
     if (configuration >= 9) return false;
     memset(b, 0, sizeof *b);
-    b->rom = rom; b->rom_size = size; b->tick = tick;
+    b->assets = assets; b->asset_size = size; b->tick = tick;
     b->configuration = (uint8_t)configuration; b->hit_wait = 0x50;
     unsigned p = word(b, 0x4e3f + configuration * 2);
     b->last_slot = byte(b, p); b->health = byte(b, p + 1); b->defeat_frame = byte(b, p + 2);
@@ -1119,7 +1119,7 @@ void bosses_step(Bosses *b, const BossWorld *w, BossEvents *events)
     BossEvents discarded;
     if (!events) events = &discarded;
     memset(events, 0, sizeof *events);
-    if (!b || !w || !b->rom) return;
+    if (!b || !w || !b->assets) return;
     ++b->tick;
     unsigned count = b->last_slot + 1u;
     if (count > ACTOR_SLOT_COUNT) { emit(events, BOSS_EVENT_ERROR, 0, count, 0); return; }

@@ -28,7 +28,7 @@ static void advance(Fireballs *fireballs,Fireball *ball,Level *level) {
     if(block<0x38) {extinguish(fireballs,ball,level,x,y,block);return;}
     unsigned bounce=ball->bounce;
     if(bounce>=24) {fireballs->error=true;return;}
-    unsigned amount=level->rom[0x3439+bounce];
+    unsigned amount=level->assets[0x3439+bounce];
     y=(uint16_t)(bounce<12?y+amount:y-amount);
     block=level_map_block(level,x-8,y-16);
     if(block<0x48&&bounce<12) {
@@ -44,7 +44,7 @@ static void compose_and_contact(Fireballs *fireballs,Fireball *ball,Level *level
     uint8_t y=(uint8_t)(ball->y-level->camera_y+70);
     if((x&0xf0)==0xc0||(y&0xf0)==0xc0) {ball->active=false;return;}
     unsigned sprite=(ball->direction==-1?0xb0:0xb4)+((level->frame&6)>>1);
-    if(!sprites_mario(&fireballs->sprites,level->rom,level->rom_size,sprite,y,x,false,false))
+    if(!sprites_mario(&fireballs->sprites,level->assets,level->asset_size,sprite,y,x,false,false))
         fireballs->error=true;
     if(contacts_fireball(targets,x,y,&level->sound_request)) ball->active=false;
 }

@@ -10,7 +10,7 @@ enum { ACTOR_SLOT_COUNT = 16, ACTOR_DEFINITION_CAPACITY = 84 };
 typedef struct ActorDefinition {
     uint16_t x, y;
     uint8_t flags, type;
-    uint32_t rom_offset;
+    uint32_t asset_offset;
 } ActorDefinition;
 
 /* Original AD00+32*n / temporary FFD0 layout. Fields whose interpretation
@@ -73,8 +73,8 @@ typedef struct ActorEvents {
 } ActorEvents;
 
 typedef struct Actors {
-    const uint8_t *rom;
-    size_t rom_size;
+    const uint8_t *assets;
+    size_t asset_size;
     ActorDefinition definitions[ACTOR_DEFINITION_CAPACITY];
     unsigned definition_count;
     Actor slots[ACTOR_SLOT_COUNT];
@@ -92,7 +92,7 @@ typedef struct Actors {
     uint64_t frames;
 } Actors;
 
-bool actors_load(Actors *actors, const uint8_t *rom, size_t rom_size,
+bool actors_load(Actors *actors, const uint8_t *assets, size_t asset_size,
                  unsigned level_id, bool easy_mode);
 void actors_step(Actors *actors, const ActorWorld *world, ActorEvents *events);
 bool actors_visual(const Actors *actors, unsigned slot, ActorVisual *visual);

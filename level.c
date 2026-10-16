@@ -19,8 +19,8 @@ static const uint8_t *bank_bytes(const Level *g, unsigned bank, unsigned address
     if (address < 0x4000 || address >= 0x8000 || count > 0x8000 - address)
         return NULL;
     size_t offset = (size_t)bank * 0x4000 + address - 0x4000;
-    if (offset > g->rom_size || count > g->rom_size - offset) return NULL;
-    return g->rom + offset;
+    if (offset > g->asset_size || count > g->asset_size - offset) return NULL;
+    return g->assets + offset;
 }
 
 static bool copy_tiles(Level *g, unsigned bank, unsigned source,
@@ -55,13 +55,13 @@ static bool decode_map(Level *g, unsigned bank, unsigned address) {
 }
 
 bool level_load_checkpoint(Level *g, unsigned id, bool checkpoint) {
-    if (id >= 32 || g->rom_size != 0x80000) return false;
+    if (id >= 32 || g->asset_size != 0x80000) return false;
     const uint8_t *p = bank_bytes(g, 1, 0x55cb + id * 2, 2);
     if (!p) return false;
     p = bank_bytes(g, 1, word(p), sizeof(g->descriptor));
     if (!p) return false;
     memcpy(g->descriptor, p, sizeof(g->descriptor));
-    if (checkpoint) memcpy(g->descriptor, g->rom + 0x377b + id * 8, 8);
+    if (checkpoint) memcpy(g->descriptor, g->assets + 0x377b + id * 8, 8);
     g->checkpoint = checkpoint;
     memcpy(g->palettes, g->descriptor + 15, 3);
     g->id = id;
@@ -83,18 +83,18 @@ bool level_load_checkpoint(Level *g, unsigned id, bool checkpoint) {
     memcpy(g->room_scripts, p, sizeof(g->room_scripts));
 
     /* 00:0669: the graphics selector's two nibbles select independent sets. */
-    unsigned selector = g->rom[0x360a + id];
+    unsigned selector = g->assets[0x360a + id];
     unsigned sprite_set = selector & 15;
     unsigned set = selector >> 4;
     memset(g->tiles, 0, sizeof(g->tiles));
     if (!copy_tiles(g, 6, 0x4000 + (sprite_set == 0 ? 0 : sprite_set == 1 ? 0x800 : 0x1000),
                     0x8000, 0x800)) return false;
-    unsigned graphics_address = word(g->rom + 0x763 + 2 * set);
+    unsigned graphics_address = word(g->assets + 0x763 + 2 * set);
     if (!copy_tiles(g, 7, graphics_address, 0x8e80, 0x380) ||
         !copy_tiles(g, 0x1b, 0x7000 + set * 0x300, 0x8800, 0x300)) return false;
-    p = g->rom + 0x362a + id * 4;
+    p = g->assets + 0x362a + id * 4;
     if (!copy_tiles(g, p[0], word(p + 2), 0x8b00, 0x380)) return false;
-    p = g->rom + 0x36aa + id * 4;
+    p = g->assets + 0x36aa + id * 4;
     if (!copy_tiles(g, p[0], word(p + 2), 0x9200, 0x600)) return false;
 
     g->y = (int)word(g->descriptor);
@@ -103,8 +103,8 @@ bool level_load_checkpoint(Level *g, unsigned id, bool checkpoint) {
     g->camera_x = (int)word(g->descriptor + 6);
     g->camera_y_origin = g->y;
     g->background_transfer_pending = false;
-    g->auto_scroll = g->rom[0x1f71 + id] != 0;
-    g->camera_rise_early = g->rom[0x1f51 + id] != 0; /* A2D9, upward threshold. */
+    g->auto_scroll = g->assets[0x1f71 + id] != 0;
+    g->camera_rise_early = g->assets[0x1f51 + id] != 0; /* A2D9, upward threshold. */
     g->background_shake = 0;
     /* 00:0F2A and scenes2/3 reset only their named work. Animation,
      * camera latches and movement/effect records outside that list survive
@@ -114,7 +114,7 @@ bool level_load_checkpoint(Level *g, unsigned id, bool checkpoint) {
     g->jump_index = 0x18;
     g->facing = 1;
     g->ticks = 0;
-    g->asset_animation_selector = (uint8_t)(g->rom[0x35ea + id] + 1);
+    g->asset_animation_selector = (uint8_t)(g->assets[0x35ea + id] + 1);
     g->time = g->descriptor[19] * 100;
     g->timer_countdown = 48; /* A24B, initialized at 00:04B5 */
     g->paused = g->complete = false;
@@ -132,7 +132,7 @@ bool level_load_checkpoint(Level *g, unsigned id, bool checkpoint) {
     g->effective_held = g->effective_pressed = 0;
     g->boss_started_this_frame = g->boss_defeated = false;
     g->ending_requested = false;
-    g->movement_mode = g->rom[0x1f91 + id] & (uint8_t)~4;
+    g->movement_mode = g->assets[0x1f91 + id] & (uint8_t)~4;
     g->bubble = false;
     g->swim_stroke_active = false;
     g->invulnerability = g->death_wait = 0;
@@ -157,12 +157,12 @@ bool level_load_checkpoint(Level *g, unsigned id, bool checkpoint) {
 
 bool level_load(Level *g, unsigned id) { return level_load_checkpoint(g, id, false); }
 
-bool level_init(Level *g, const uint8_t *rom, size_t rom_size) {
+bool level_init(Level *g, const uint8_t *assets, size_t asset_size) {
     memset(g, 0, sizeof(*g));
-    g->rom = rom;
-    g->rom_size = rom_size;
+    g->assets = assets;
+    g->asset_size = asset_size;
     g->lives = 5;
-    return rom && level_load(g, 0);
+    return assets && level_load(g, 0);
 }
 
 void level_reset(Level *g) { (void)level_load_checkpoint(g, g->id, g->checkpoint); }
@@ -628,7 +628,7 @@ static void step_player(Level *g, uint8_t held, uint8_t pressed, bool timer_expi
                 g->jump_index = movement_flags(g) ? 0x2f : 0x18;
         }
         unsigned trajectory = movement_flags(g) ? 0x1947 : g->slow_terrain ? 0x18fb : 0x18af;
-        g->y += (int8_t)g->rom[trajectory + g->jump_index];
+        g->y += (int8_t)g->assets[trajectory + g->jump_index];
         if (g->jump_index >= 25) {
             int head_y = g->y + (g->power == LEVEL_SMALL ? 28 : 18);
             uint8_t ceiling = block_at(g, g->x + 16, head_y);
@@ -674,7 +674,7 @@ static void step_player(Level *g, uint8_t held, uint8_t pressed, bool timer_expi
     /* 00:181C: table performs original frame-phased fractional movement. */
     unsigned horizontal_table = !g->goal_walk && (g->slow_terrain ||
         ((g->movement_mode & 2) && g->grounded)) ? 0x1aff : 0x19ff;
-    int dx = wall_push + (int8_t)g->rom[horizontal_table + g->speed_index + (g->frame & 7)];
+    int dx = wall_push + (int8_t)g->assets[horizontal_table + g->speed_index + (g->frame & 7)];
     int before_horizontal_step = g->x;
     g->x += dx;
     uint8_t hit_wall = wall_block(g, dx >= 0);
@@ -800,15 +800,15 @@ static bool load_boss_arena(Level *g, unsigned kind) {
     const uint8_t *p = bank_bytes(g, 0x13, 0x42f0 + 3 * 2, 2);
     if (!p || !decode_map(g, 0x13, word(p))) return false;
     if (!copy_tiles(g, 7, 0x7800, 0x8e80, 0x50)) return false;
-    unsigned bank = g->rom[0x268b + kind * 2];
-    unsigned source = word(g->rom + 0x2699 + kind * 4);
+    unsigned bank = g->assets[0x268b + kind * 2];
+    unsigned source = word(g->assets + 0x2699 + kind * 4);
     if (!copy_tiles(g, bank, source, g->id == 24 ? 0x9000 : 0x9200,
                     g->id == 24 ? 0x800 : 0x600)) return false;
-    bank = g->rom[0x268c + kind * 2];
-    source = word(g->rom + 0x269b + kind * 4);
+    bank = g->assets[0x268c + kind * 2];
+    source = word(g->assets + 0x269b + kind * 4);
     if (!copy_tiles(g, bank, source, g->id == 24 ? 0x8900 : 0x8b00,
                     g->id == 24 ? 0x700 : 0x400)) return false;
-    p = bank_bytes(g, 8, word(g->rom + 0x26b5 + kind * 2), sizeof(g->metatiles));
+    p = bank_bytes(g, 8, word(g->assets + 0x26b5 + kind * 2), sizeof(g->metatiles));
     if (!p) return false;
     memcpy(g->metatiles, p, sizeof(g->metatiles));
     g->boss_kind = (uint8_t)kind;
@@ -1128,7 +1128,7 @@ void level_step(Level *g, uint8_t held, uint8_t pressed) {
         /* 00:315C deliberately updates only FFC0, leaving the high byte. */
         if (g->life_state == LEVEL_DYING) {
             g->death_arc_frame = true;
-            int low = (uint8_t)(g->y + (int8_t)g->rom[0x31ef + g->jump_index]);
+            int low = (uint8_t)(g->y + (int8_t)g->assets[0x31ef + g->jump_index]);
             g->y = (g->y & ~255) | low;
             unsigned screen_y = (uint8_t)(g->y - g->camera_y + 98);
             g->previous_screen_y = (uint8_t)screen_y;
@@ -1189,7 +1189,7 @@ void level_step_water_effect(Level *g) {
 
 void level_compose_water_effect(const Level *g, SpriteList *sprites) {
     if (!g->water_effect_kind) return;
-    (void)sprites_mario(sprites, g->rom, g->rom_size,
+    (void)sprites_mario(sprites, g->assets, g->asset_size,
                         g->water_effect_kind == 1 ? 0xc7 : 0xc8,
                         (uint8_t)(g->water_effect_y - g->camera_y + 98),
                         (uint8_t)(g->water_effect_x - g->camera_x + 96), false, false);
@@ -1212,7 +1212,7 @@ void level_compose_sprites(const Level *g, SpriteList *list) {
     unsigned frame = g->facing > 0 ? 0 : 4;
     if (g->pipe >= 0x10)
         frame = g->pipe < 0x30 ? 0x10 : (g->pipe == 0x30 ? 1 : 5) + ((g->animation & 12) >> 2);
-    else if (g->spinning) frame = g->rom[0x5348 + ((g->frame & 12) >> 2)];
+    else if (g->spinning) frame = g->assets[0x5348 + ((g->frame & 12) >> 2)];
     else if ((g->movement_mode & 2) && !g->grounded)
         frame = (g->facing > 0 ? 0x12 : 0x14) + (g->swim_stroke_active ? 1 : 0);
     /* 01:5377/53F2 tests the latched crouch before airborne state. A jump
@@ -1233,10 +1233,10 @@ void level_compose_sprites(const Level *g, SpriteList *list) {
     if (g->death_arc_frame) frame = 0x6b;
     if (g->life_state == LEVEL_ALIVE || g->death_started_this_frame ||
         (g->death_arc_frame && (origin_y & 0xe0) != 0xe0)) {
-        (void)sprites_mario(list, g->rom, g->rom_size, frame, y, x,
+        (void)sprites_mario(list, g->assets, g->asset_size, frame, y, x,
                             (g->star_frames >> 8) && (g->star_frames & 4), g->pipe >= 0x10 && !g->death_arc_frame);
         if (g->bubble)
-            (void)sprites_mario(list, g->rom, g->rom_size, 0xdc + ((g->frame & 16) >> 4), y, x, false, false);
+            (void)sprites_mario(list, g->assets, g->asset_size, 0xdc + ((g->frame & 16) >> 4), y, x, false, false);
     }
 
     /* 01:551E emits the star-combo number, then the 1UP metasprite after
@@ -1245,7 +1245,7 @@ void level_compose_sprites(const Level *g, SpriteList *list) {
         uint8_t count_y=(uint8_t)(y-32+(g->star_chain_ticks>>1));
         uint8_t count_x=(uint8_t)(x-4);
         if(g->star_chain<5) (void)sprites_add(list,count_y,count_x,(uint8_t)(0x80+g->star_chain),0);
-        else (void)sprites_mario(list,g->rom,g->rom_size,0xbe,count_y,count_x,false,false);
+        else (void)sprites_mario(list,g->assets,g->asset_size,0xbe,count_y,count_x,false,false);
     }
     /* 00:0640 skips block effects after the shared Mario sprite tail. */
     if (g->life_state != LEVEL_ALIVE && !g->death_started_this_frame) return;
@@ -1256,16 +1256,16 @@ void level_compose_sprites(const Level *g, SpriteList *list) {
         int ey = effect->y - g->camera_y + 72;
         int ex = effect->x - g->camera_x + 80;
         if ((effect->kind == 1 || effect->kind == 5) && age >= 3 && age < 40) {
-            ey += (int8_t)g->rom[0x5a4a + age];
-            (void)sprites_mario(list, g->rom, g->rom_size, 0x65, (uint8_t)ey, (uint8_t)(ex - age), false, false);
-            (void)sprites_mario(list, g->rom, g->rom_size, 0x66, (uint8_t)ey, (uint8_t)(ex + age), false, false);
+            ey += (int8_t)g->assets[0x5a4a + age];
+            (void)sprites_mario(list, g->assets, g->asset_size, 0x65, (uint8_t)ey, (uint8_t)(ex - age), false, false);
+            (void)sprites_mario(list, g->assets, g->asset_size, 0x66, (uint8_t)ey, (uint8_t)(ex + age), false, false);
         } else if ((effect->kind == 2 || effect->kind == 3 || effect->kind == 6) && age >= 3 && age < 8) {
-            ey += (int8_t)g->rom[0x5bb4 + age];
-            (void)sprites_mario(list, g->rom, g->rom_size, 0x42, (uint8_t)ey, (uint8_t)ex, false, false);
+            ey += (int8_t)g->assets[0x5bb4 + age];
+            (void)sprites_mario(list, g->assets, g->asset_size, 0x42, (uint8_t)ey, (uint8_t)ex, false, false);
         } else if (effect->kind == 4 && age >= 2 && age < 50) {
-            ey += (int8_t)g->rom[0x5ae0 + (age >> 1)];
-            frame = g->rom[0x5af9 + ((age & 12) >> 2)];
-            (void)sprites_mario(list, g->rom, g->rom_size, frame, (uint8_t)ey, (uint8_t)ex, false, false);
+            ey += (int8_t)g->assets[0x5ae0 + (age >> 1)];
+            frame = g->assets[0x5af9 + ((age & 12) >> 2)];
+            (void)sprites_mario(list, g->assets, g->asset_size, frame, (uint8_t)ey, (uint8_t)ex, false, false);
         }
     }
 }
@@ -1288,7 +1288,7 @@ void level_render_scene(const Level *g, const SpriteList *list, uint8_t defeated
     /* 00:07DB / 076B; window starts at y=136, x=0 (WY=136,WX=7).
      * It is part of the background and participates in object priority. */
     uint8_t hud[20];
-    memcpy(hud, g->rom + 0x7ea, sizeof(hud));
+    memcpy(hud, g->assets + 0x7ea, sizeof(hud));
     hud[2] = 0x80 + (g->lives / 10) % 10;
     hud[3] = 0x80 + g->lives % 10;
     hud[7] = 0x80 + (g->coins / 100) % 10;
