@@ -1,0 +1,12 @@
+/build/
+/input/
+/tests/
+/reference/
+/evidence/
+*.gb
+*.gbc
+*.zip
+*.7z
+*.sav
+*.sav.bak
+*.sav.tmp
